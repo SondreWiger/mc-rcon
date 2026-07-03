@@ -303,22 +303,34 @@ export default function Home() {
     return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
   }, [countdownRunning]);
 
+  const countdownFinishedRef = useRef(false);
+
   useEffect(() => {
-    if (countdownRemaining === 0 && countdownRunning) return;
-    if (countdownRemaining === 0 && !countdownRunning) {
+    if (countdownRemaining === 0 && !countdownRunning && countdownFinishedRef.current) return;
+    if (countdownRemaining === 0 && !countdownRunning && !countdownFinishedRef.current) {
+      countdownFinishedRef.current = true;
       const prefix = countdownPrefix ? `${countdownPrefix} ` : "";
       const suffix = countdownSuffix ? ` ${countdownSuffix}` : "";
       void api("title", { player: titleTarget, text: `${prefix}${countdownFinishTitle}${suffix}`, color: "green", fade: "5", stay: "60", fadeOut: "10" });
       if (countdownFinishType === "stop") {
         void api("stop");
+        setTimeout(() => setResult("Countdown finished — stopping server"), 0);
       } else if (countdownFinishType === "restart") {
         void api("restart");
+        setTimeout(() => setResult("Countdown finished — restarting server"), 0);
       } else if (countdownFinishType === "say" && countdownFinishCmd) {
         void api("say", { message: countdownFinishCmd });
+        setTimeout(() => setResult(`Countdown finished — sent: ${countdownFinishCmd}`), 0);
       } else if (countdownFinishType === "command" && countdownFinishCmd) {
         void api("raw", { command: countdownFinishCmd });
+        setTimeout(() => setResult(`Countdown finished — ran: ${countdownFinishCmd}`), 0);
+      } else {
+        setTimeout(() => setResult("Countdown finished"), 0);
       }
       return;
+    }
+    if (countdownRunning) {
+      countdownFinishedRef.current = false;
     }
     countdownIntervals.forEach((interval) => {
       if (!interval.sent && countdownRemaining === interval.seconds) {
@@ -337,8 +349,13 @@ export default function Home() {
     setLoading(true);
     const d = await api("team_list");
     setLoading(false);
-    if (d.success && d.teams) setTeams(d.teams);
-    else setResult(`Error: ${d.error}`);
+    if (d.success) {
+      setTeams(d.teams || []);
+      if (d.raw) setResult(`Server response:\n${d.raw}`);
+      else if (d.teams && d.teams.length === 0) setResult("No teams found on server. Create one below.");
+    } else {
+      setResult(`Error: ${d.error}`);
+    }
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [

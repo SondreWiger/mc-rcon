@@ -252,86 +252,87 @@ export async function POST(request: Request) {
 
       // ── Teams ──
       case "team_list": {
-        const result = await sendCommand("team list");
-        const match = result.match(/Known teams \((\d+)\):\s*(.*)/i);
-        if (!match) {
-          return NextResponse.json({ success: true, teams: [], raw: result });
-        }
-        const count = parseInt(match[1]);
-        const namesStr = match[2].trim();
-        if (count === 0 || !namesStr) {
-          return NextResponse.json({ success: true, teams: [], raw: result });
-        }
-        const teamNames = namesStr.split(", ").filter(Boolean);
-        const teams: { name: string; color: string; players: string[] }[] = [];
-        for (const name of teamNames) {
-          try {
-            const info = await sendCommand(`team list ${name}`);
-            const playersMatch = info.match(/members?\s*\((\d+)\):\s*(.*)/i) || info.match(/members?:\s*(.*)/i);
-            let players: string[] = [];
-            if (playersMatch) {
-              const pStr = playersMatch[2] || playersMatch[1];
-              if (pStr && pStr.trim() && !pStr.match(/^\d+$/)) players = pStr.split(", ").filter(Boolean);
-            }
-            teams.push({ name, color: "white", players });
-          } catch {
-            teams.push({ name, color: "white", players: [] });
+        try {
+          const result = await sendCommand("team list");
+          const match = result.match(/Known teams \((\d+)\):\s*(.*)/i);
+          if (!match) {
+            return NextResponse.json({ success: true, teams: [], raw: result });
           }
+          const count = parseInt(match[1]);
+          const namesStr = match[2].trim();
+          if (count === 0 || !namesStr) {
+            return NextResponse.json({ success: true, teams: [], raw: result });
+          }
+          const teamNames = namesStr.split(", ").filter(Boolean);
+          const teams: { name: string; color: string; players: string[] }[] = [];
+          for (const name of teamNames) {
+            try {
+              const info = await sendCommand(`team list ${name}`);
+              const players: string[] = [];
+              const memberMatch = info.match(/members?\s*\((\d+)\):\s*(.*)/i);
+              if (memberMatch && memberMatch[2].trim()) {
+                players.push(...memberMatch[2].split(", ").filter(Boolean));
+              }
+              teams.push({ name, color: "white", players });
+            } catch {
+              teams.push({ name, color: "white", players: [] });
+            }
+          }
+          return NextResponse.json({ success: true, teams, raw: result });
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          return NextResponse.json({ success: false, error: `team list failed: ${msg}` });
         }
-        return NextResponse.json({ success: true, teams, raw: result });
       }
       case "team_add": {
         const { name } = body;
-        await sendCommand(`team add ${name}`);
-        return NextResponse.json({ success: true, response: `Created team ${name}` });
+        const result = await sendCommand(`team add ${name}`);
+        return NextResponse.json({ success: true, response: result || `Created team ${name}` });
       }
       case "team_remove": {
         const { name } = body;
-        await sendCommand(`team remove ${name}`);
-        return NextResponse.json({ success: true, response: `Removed team ${name}` });
+        const result = await sendCommand(`team remove ${name}`);
+        return NextResponse.json({ success: true, response: result || `Removed team ${name}` });
       }
       case "team_color": {
         const { name, color } = body;
-        await sendCommand(`team modify ${name} color ${color}`);
-        return NextResponse.json({ success: true, response: `Set ${name} color to ${color}` });
+        const result = await sendCommand(`team modify ${name} color ${color}`);
+        return NextResponse.json({ success: true, response: result || `Set ${name} color to ${color}` });
       }
       case "team_displayname": {
         const { name, displayName } = body;
-        const jsonText = JSON.stringify({ text: displayName });
-        await sendCommand(`team modify ${name} displayName ${jsonText}`);
-        return NextResponse.json({ success: true, response: `Set ${name} display name to ${displayName}` });
+        const result = await sendCommand(`team modify ${name} displayName {"text":"${displayName}"}`);
+        return NextResponse.json({ success: true, response: result || `Set ${name} display name to ${displayName}` });
       }
       case "team_prefix": {
         const { name, prefix } = body;
-        const jsonText = JSON.stringify({ text: prefix });
-        await sendCommand(`team modify ${name} prefix ${jsonText}`);
-        return NextResponse.json({ success: true, response: `Set ${name} prefix to ${prefix}` });
+        const result = await sendCommand(`team modify ${name} prefix {"text":"${prefix}"}`);
+        return NextResponse.json({ success: true, response: result || `Set ${name} prefix to ${prefix}` });
       }
       case "team_suffix": {
         const { name, suffix } = body;
-        const jsonText = JSON.stringify({ text: suffix });
-        await sendCommand(`team modify ${name} suffix ${jsonText}`);
-        return NextResponse.json({ success: true, response: `Set ${name} suffix to ${suffix}` });
+        const result = await sendCommand(`team modify ${name} suffix {"text":"${suffix}"}`);
+        return NextResponse.json({ success: true, response: result || `Set ${name} suffix to ${suffix}` });
       }
       case "team_join": {
         const { name, player } = body;
-        await sendCommand(`team join ${name} ${player}`);
-        return NextResponse.json({ success: true, response: `Added ${player} to ${name}` });
+        const result = await sendCommand(`team join ${name} ${player}`);
+        return NextResponse.json({ success: true, response: result || `Added ${player} to ${name}` });
       }
       case "team_leave": {
         const { player } = body;
-        await sendCommand(`team leave ${player}`);
-        return NextResponse.json({ success: true, response: `Removed ${player} from their team` });
+        const result = await sendCommand(`team leave ${player}`);
+        return NextResponse.json({ success: true, response: result || `Removed ${player} from their team` });
       }
       case "team_empty": {
         const { name } = body;
-        await sendCommand(`team empty ${name}`);
-        return NextResponse.json({ success: true, response: `Emptied team ${name}` });
+        const result = await sendCommand(`team empty ${name}`);
+        return NextResponse.json({ success: true, response: result || `Emptied team ${name}` });
       }
       case "team_option": {
         const { name, option, value } = body;
-        await sendCommand(`team modify ${name} ${option} ${value}`);
-        return NextResponse.json({ success: true, response: `Set ${name} ${option} to ${value}` });
+        const result = await sendCommand(`team modify ${name} ${option} ${value}`);
+        return NextResponse.json({ success: true, response: result || `Set ${name} ${option} to ${value}` });
       }
 
       // ── Raw Command ──
