@@ -164,6 +164,7 @@ export default function Home() {
   const [countdownIntervals, setCountdownIntervals] = useState<CountdownInterval[]>([]);
   const [countdownPrefix, setCountdownPrefix] = useState("");
   const [countdownSuffix, setCountdownSuffix] = useState("");
+  const [countdownFinishType, setCountdownFinishType] = useState<"none" | "say" | "command" | "stop" | "restart">("none");
   const [countdownFinishCmd, setCountdownFinishCmd] = useState("");
   const [countdownFinishTitle, setCountdownFinishTitle] = useState("GO!");
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
@@ -308,7 +309,15 @@ export default function Home() {
       const prefix = countdownPrefix ? `${countdownPrefix} ` : "";
       const suffix = countdownSuffix ? ` ${countdownSuffix}` : "";
       void api("title", { player: titleTarget, text: `${prefix}${countdownFinishTitle}${suffix}`, color: "green", fade: "5", stay: "60", fadeOut: "10" });
-      if (countdownFinishCmd) void api("raw", { command: countdownFinishCmd });
+      if (countdownFinishType === "stop") {
+        void api("stop");
+      } else if (countdownFinishType === "restart") {
+        void api("restart");
+      } else if (countdownFinishType === "say" && countdownFinishCmd) {
+        void api("say", { message: countdownFinishCmd });
+      } else if (countdownFinishType === "command" && countdownFinishCmd) {
+        void api("raw", { command: countdownFinishCmd });
+      }
       return;
     }
     countdownIntervals.forEach((interval) => {
@@ -606,18 +615,53 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Finish Command */}
-                <div style={{ marginTop: "1rem" }}>
-                  <Field label="Command to Run When Countdown Finishes (optional)">
-                    <input type="text" value={countdownFinishCmd} onChange={(e) => setCountdownFinishCmd(e.target.value)}
-                      style={inputStyle} placeholder="e.g. say Game has started! or time set day" disabled={countdownRunning} />
+                {/* Finish Action */}
+                <div style={{ marginTop: "1.5rem", borderTop: "1px solid var(--grey-light)", paddingTop: "1.5rem" }}>
+                  <Field label="When Countdown Finishes">
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                      {[
+                        { value: "none", label: "Nothing" },
+                        { value: "say", label: "Say Message" },
+                        { value: "command", label: "Run Command" },
+                        { value: "stop", label: "Stop Server" },
+                        { value: "restart", label: "Restart Server" },
+                      ].map((opt) => (
+                        <Btn key={opt.value} color={countdownFinishType === opt.value ? "navy" : "outline"}
+                          onClick={() => setCountdownFinishType(opt.value as typeof countdownFinishType)}
+                          disabled={countdownRunning}>{opt.label}</Btn>
+                      ))}
+                    </div>
                   </Field>
-                </div>
-                <div style={{ marginTop: "0.75rem" }}>
-                  <Field label="Finish Title Text">
-                    <input type="text" value={countdownFinishTitle} onChange={(e) => setCountdownFinishTitle(e.target.value)}
-                      style={inputStyle} placeholder="GO!" disabled={countdownRunning} />
-                  </Field>
+
+                  {countdownFinishType === "command" && (
+                    <div style={{ marginTop: "1rem" }}>
+                      <Field label="Command to Execute">
+                        <input type="text" value={countdownFinishCmd} onChange={(e) => setCountdownFinishCmd(e.target.value)}
+                          style={inputStyle} placeholder="e.g. time set day" disabled={countdownRunning} />
+                      </Field>
+                      <span style={{ fontSize: "0.75rem", color: "var(--grey)", fontFamily: "var(--font-mono), monospace", marginTop: "0.5rem", display: "block" }}>
+                        Supports any RCON command: give, gamemode, time, effect, tp, etc.
+                      </span>
+                    </div>
+                  )}
+
+                  {countdownFinishType === "say" && (
+                    <div style={{ marginTop: "1rem" }}>
+                      <Field label="Message to Broadcast">
+                        <input type="text" value={countdownFinishCmd} onChange={(e) => setCountdownFinishCmd(e.target.value)}
+                          style={inputStyle} placeholder="e.g. Game has started!" disabled={countdownRunning} />
+                      </Field>
+                    </div>
+                  )}
+
+                  {countdownFinishType !== "none" && (
+                    <div style={{ marginTop: "1rem" }}>
+                      <Field label="Finish Title Text">
+                        <input type="text" value={countdownFinishTitle} onChange={(e) => setCountdownFinishTitle(e.target.value)}
+                          style={inputStyle} placeholder="GO!" disabled={countdownRunning} />
+                      </Field>
+                    </div>
+                  )}
                 </div>
               </Section>
 

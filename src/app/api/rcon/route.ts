@@ -253,23 +253,32 @@ export async function POST(request: Request) {
       // ── Teams ──
       case "team_list": {
         const result = await sendCommand("team list");
-        const teamNames = result.replace(/Known teams \(\d+\): /, "").split(", ").filter(Boolean);
+        const match = result.match(/Known teams \((\d+)\):\s*(.*)/i);
+        if (!match) {
+          return NextResponse.json({ success: true, teams: [], raw: result });
+        }
+        const count = parseInt(match[1]);
+        const namesStr = match[2].trim();
+        if (count === 0 || !namesStr) {
+          return NextResponse.json({ success: true, teams: [], raw: result });
+        }
+        const teamNames = namesStr.split(", ").filter(Boolean);
         const teams: { name: string; color: string; players: string[] }[] = [];
         for (const name of teamNames) {
           try {
             const info = await sendCommand(`team list ${name}`);
-            const colorMatch = info.match(/color: (\w+)/);
-            const playersMatch = info.match(/players: \[(.*?)\]/);
-            teams.push({
-              name,
-              color: colorMatch ? colorMatch[1] : "white",
-              players: playersMatch ? playersMatch[1].split(", ").filter(Boolean) : [],
-            });
+            const playersMatch = info.match(/members?\s*\((\d+)\):\s*(.*)/i) || info.match(/members?:\s*(.*)/i);
+            let players: string[] = [];
+            if (playersMatch) {
+              const pStr = playersMatch[2] || playersMatch[1];
+              if (pStr && pStr.trim() && !pStr.match(/^\d+$/)) players = pStr.split(", ").filter(Boolean);
+            }
+            teams.push({ name, color: "white", players });
           } catch {
             teams.push({ name, color: "white", players: [] });
           }
         }
-        return NextResponse.json({ success: true, teams });
+        return NextResponse.json({ success: true, teams, raw: result });
       }
       case "team_add": {
         const { name } = body;
