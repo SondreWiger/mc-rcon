@@ -160,18 +160,12 @@ export default function Home() {
   const [countdownTotal, setCountdownTotal] = useState("20:00");
   const [countdownRemaining, setCountdownRemaining] = useState(0);
   const [countdownRunning, setCountdownRunning] = useState(false);
-  const [countdownIntervals, setCountdownIntervals] = useState<CountdownInterval[]>([
-    { label: "15:00", seconds: 900, sent: false },
-    { label: "10:00", seconds: 600, sent: false },
-    { label: "5:00", seconds: 300, sent: false },
-    { label: "3:00", seconds: 180, sent: false },
-    { label: "1:00", seconds: 60, sent: false },
-    { label: "0:10", seconds: 10, sent: false },
-    { label: "0:05", seconds: 5, sent: false },
-    { label: "0:03", seconds: 3, sent: false },
-    { label: "0:02", seconds: 2, sent: false },
-    { label: "0:01", seconds: 1, sent: false },
-  ]);
+  const [countdownIntervalsInput, setCountdownIntervalsInput] = useState("15:00, 10:00, 5:00, 3:00, 1:00, 0:10, 0:05, 0:03, 0:02, 0:01");
+  const [countdownIntervals, setCountdownIntervals] = useState<CountdownInterval[]>([]);
+  const [countdownPrefix, setCountdownPrefix] = useState("");
+  const [countdownSuffix, setCountdownSuffix] = useState("");
+  const [countdownFinishCmd, setCountdownFinishCmd] = useState("");
+  const [countdownFinishTitle, setCountdownFinishTitle] = useState("GO!");
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   // Teams
@@ -267,12 +261,23 @@ export default function Home() {
     return parseInt(val) || 0;
   };
 
+  const parseIntervals = (): CountdownInterval[] => {
+    return countdownIntervalsInput.split(",").map((s) => {
+      const t = s.trim();
+      const secs = parseCountdownInput(t);
+      const m = Math.floor(secs / 60);
+      const sec = secs % 60;
+      const label = m > 0 ? `${m}:${sec.toString().padStart(2, "0")}` : `${sec}`;
+      return { label, seconds: secs, sent: false };
+    }).filter((i) => i.seconds > 0).sort((a, b) => b.seconds - a.seconds);
+  };
+
   const startCountdown = () => {
     const total = parseCountdownInput(countdownTotal);
     if (total <= 0) return;
+    setCountdownIntervals(parseIntervals());
     setCountdownRemaining(total);
     setCountdownRunning(true);
-    setCountdownIntervals((prev) => prev.map((i) => ({ ...i, sent: false })));
   };
 
   const resetCountdown = () => {
@@ -288,7 +293,7 @@ export default function Home() {
       setCountdownRemaining((prev) => {
         if (prev <= 1) {
           if (countdownRef.current) clearInterval(countdownRef.current);
-          setCountdownRunning(false);
+          setTimeout(() => setCountdownRunning(false), 0);
           return 0;
         }
         return prev - 1;
@@ -298,15 +303,25 @@ export default function Home() {
   }, [countdownRunning]);
 
   useEffect(() => {
-    if (!countdownRunning || countdownRemaining <= 0) return;
+    if (countdownRemaining === 0 && countdownRunning) return;
+    if (countdownRemaining === 0 && !countdownRunning) {
+      const prefix = countdownPrefix ? `${countdownPrefix} ` : "";
+      const suffix = countdownSuffix ? ` ${countdownSuffix}` : "";
+      void api("title", { player: titleTarget, text: `${prefix}${countdownFinishTitle}${suffix}`, color: "green", fade: "5", stay: "60", fadeOut: "10" });
+      if (countdownFinishCmd) void api("raw", { command: countdownFinishCmd });
+      return;
+    }
     countdownIntervals.forEach((interval) => {
-      if (!interval.sent && countdownRemaining <= interval.seconds) {
+      if (!interval.sent && countdownRemaining === interval.seconds) {
         setCountdownIntervals((prev) => prev.map((i) => i.seconds === interval.seconds ? { ...i, sent: true } : i));
-        const text = interval.seconds <= 10 ? `${interval.seconds}` : formatTime(interval.seconds);
-        api("title", { player: titleTarget, text, color: interval.seconds <= 10 ? "red" : "gold", fade: "5", stay: "30", fadeOut: "5" });
+        const prefix = countdownPrefix ? `${countdownPrefix} ` : "";
+        const suffix = countdownSuffix ? ` ${countdownSuffix}` : "";
+        const timeStr = interval.seconds <= 10 ? `${interval.seconds}` : formatTime(interval.seconds);
+        void api("title", { player: titleTarget, text: `${prefix}${timeStr}${suffix}`, color: interval.seconds <= 10 ? "red" : "gold", fade: "5", stay: "30", fadeOut: "5" });
       }
     });
-  }, [countdownRemaining, countdownRunning, countdownIntervals, api, titleTarget]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdownRemaining, countdownRunning]);
 
   // ── Teams ──
   const fetchTeams = async () => {
@@ -550,19 +565,59 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Notification Intervals */}
                 <div style={{ marginTop: "1.5rem" }}>
-                  <span style={{ fontSize: "0.75rem", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "var(--font-mono), monospace", color: "var(--navy)", display: "block", marginBottom: "0.75rem" }}>Notification Intervals</span>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                    {countdownIntervals.map((interval) => (
-                      <span key={interval.seconds} style={{
-                        padding: "0.375rem 0.75rem", fontSize: "0.75rem", fontFamily: "var(--font-mono), monospace", fontWeight: 700,
-                        border: "1px solid", borderColor: interval.sent ? "var(--grey-light)" : "var(--navy)",
-                        color: interval.sent ? "var(--grey)" : "var(--navy)",
-                        background: interval.sent ? "var(--cream-dark)" : "var(--cream)",
-                        opacity: interval.sent ? 0.5 : 1,
-                      }}>{interval.label}</span>
-                    ))}
+                  <Field label="Notification Intervals (comma-separated, MM:SS)">
+                    <input type="text" value={countdownIntervalsInput} onChange={(e) => setCountdownIntervalsInput(e.target.value)}
+                      style={inputStyle} placeholder="15:00, 10:00, 5:00, 1:00, 0:10, 0:05" disabled={countdownRunning} />
+                  </Field>
+                  {countdownIntervals.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.75rem" }}>
+                      {countdownIntervals.map((interval) => (
+                        <span key={interval.seconds} style={{
+                          padding: "0.375rem 0.75rem", fontSize: "0.75rem", fontFamily: "var(--font-mono), monospace", fontWeight: 700,
+                          border: "1px solid", borderColor: interval.sent ? "var(--grey-light)" : "var(--navy)",
+                          color: interval.sent ? "var(--grey)" : "var(--navy)",
+                          background: interval.sent ? "var(--cream-dark)" : "var(--cream)",
+                          opacity: interval.sent ? 0.5 : 1,
+                        }}>{interval.label}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Prefix & Suffix */}
+                <div style={{ marginTop: "1.5rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                  <Field label="Title Prefix">
+                    <input type="text" value={countdownPrefix} onChange={(e) => setCountdownPrefix(e.target.value)}
+                      style={inputStyle} placeholder="e.g. Game starts in" disabled={countdownRunning} />
+                  </Field>
+                  <Field label="Title Suffix">
+                    <input type="text" value={countdownSuffix} onChange={(e) => setCountdownSuffix(e.target.value)}
+                      style={inputStyle} placeholder="e.g. !" disabled={countdownRunning} />
+                  </Field>
+                </div>
+
+                {/* Preview */}
+                <div style={{ background: "#2a2a2a", borderRadius: "4px", padding: "clamp(1.5rem, 3vw, 2.5rem)", margin: "1.5rem 0", textAlign: "center", border: "2px solid var(--navy)" }}>
+                  <div style={{ fontSize: "0.5rem", textTransform: "uppercase", letterSpacing: "0.15em", fontFamily: "var(--font-mono), monospace", color: "rgba(255,255,255,0.3)", marginBottom: "0.5rem" }}>Notification Preview</div>
+                  <div style={{ fontSize: "clamp(1.2rem, 3vw, 2rem)", color: countdownRemaining <= 10 ? "#FF5555" : "#FFAA00", textShadow: "2px 2px 0px #3f3f3f", fontWeight: 900 }}>
+                    {countdownPrefix ? `${countdownPrefix} ` : ""}{countdownRemaining > 0 ? formatTime(countdownRemaining) : countdownFinishTitle}{countdownSuffix ? ` ${countdownSuffix}` : ""}
                   </div>
+                </div>
+
+                {/* Finish Command */}
+                <div style={{ marginTop: "1rem" }}>
+                  <Field label="Command to Run When Countdown Finishes (optional)">
+                    <input type="text" value={countdownFinishCmd} onChange={(e) => setCountdownFinishCmd(e.target.value)}
+                      style={inputStyle} placeholder="e.g. say Game has started! or time set day" disabled={countdownRunning} />
+                  </Field>
+                </div>
+                <div style={{ marginTop: "0.75rem" }}>
+                  <Field label="Finish Title Text">
+                    <input type="text" value={countdownFinishTitle} onChange={(e) => setCountdownFinishTitle(e.target.value)}
+                      style={inputStyle} placeholder="GO!" disabled={countdownRunning} />
+                  </Field>
                 </div>
               </Section>
 
