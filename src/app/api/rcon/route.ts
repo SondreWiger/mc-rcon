@@ -541,7 +541,11 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error occurred";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    if (message.includes("Not connected")) {
+      rcon = null;
+      return NextResponse.json({ success: false, error: "RCON disconnected. Please reconnect." });
+    }
+    return NextResponse.json({ success: false, error: message });
   }
 }
 

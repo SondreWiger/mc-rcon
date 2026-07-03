@@ -243,11 +243,15 @@ export default function Home() {
   useEffect(() => { scrollToBottom(); }, [chatMessages]);
 
   const api = useCallback(async (action: string, params: Record<string, string> = {}) => {
-    const res = await fetch("/api/rcon", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, ...params }),
-    });
-    return res.json();
+    try {
+      const res = await fetch("/api/rcon", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...params }),
+      });
+      return await res.json();
+    } catch {
+      return { success: false, error: "Network error — server may have crashed" };
+    }
   }, []);
 
   const fetchChat = useCallback(async () => {
