@@ -351,8 +351,7 @@ export default function Home() {
     setLoading(false);
     if (d.success) {
       setTeams(d.teams || []);
-      if (d.raw) setResult(`Server response:\n${d.raw}`);
-      else if (d.teams && d.teams.length === 0) setResult("No teams found on server. Create one below.");
+      if (!d.teams || d.teams.length === 0) setResult("No teams found. Create one below.");
     } else {
       setResult(`Error: ${d.error}`);
     }

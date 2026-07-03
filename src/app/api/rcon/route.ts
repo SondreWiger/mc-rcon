@@ -254,24 +254,36 @@ export async function POST(request: Request) {
       case "team_list": {
         try {
           const result = await sendCommand("team list");
-          const match = result.match(/Known teams \((\d+)\):\s*(.*)/i);
-          if (!match) {
+          // Try multiple formats: "Known teams (2): a, b" or "There are 2 team(s): [a, b]"
+          let teamNames: string[] = [];
+          const matchKnown = result.match(/Known teams \((\d+)\):\s*(.*)/i);
+          const matchThere = result.match(/There are \d+ team\(s\):\s*\[(.*?)\]/i);
+          if (matchKnown && matchKnown[2].trim()) {
+            teamNames = matchKnown[2].split(", ").filter(Boolean);
+          } else if (matchThere && matchThere[1].trim()) {
+            teamNames = matchThere[1].split(", ").filter(Boolean);
+          } else {
+            // Last resort: try comma-separated names after colon
+            const matchColon = result.match(/:\s*(.+)/);
+            if (matchColon && matchColon[1].trim()) {
+              teamNames = matchColon[1].replace(/[\[\]]/g, "").split(", ").filter(Boolean);
+            }
+          }
+          if (teamNames.length === 0) {
             return NextResponse.json({ success: true, teams: [], raw: result });
           }
-          const count = parseInt(match[1]);
-          const namesStr = match[2].trim();
-          if (count === 0 || !namesStr) {
-            return NextResponse.json({ success: true, teams: [], raw: result });
-          }
-          const teamNames = namesStr.split(", ").filter(Boolean);
           const teams: { name: string; color: string; players: string[] }[] = [];
           for (const name of teamNames) {
             try {
               const info = await sendCommand(`team list ${name}`);
               const players: string[] = [];
-              const memberMatch = info.match(/members?\s*\((\d+)\):\s*(.*)/i);
-              if (memberMatch && memberMatch[2].trim()) {
-                players.push(...memberMatch[2].split(", ").filter(Boolean));
+              // Try: "There are 2 members in team X: p1, p2"
+              const memberMatch = info.match(/(\d+) members? in team/i) || info.match(/members?:\s*(.*)/i);
+              if (memberMatch) {
+                const afterColon = info.split(":")[1];
+                if (afterColon && afterColon.trim()) {
+                  players.push(...afterColon.split(", ").filter(Boolean));
+                }
               }
               teams.push({ name, color: "white", players });
             } catch {
