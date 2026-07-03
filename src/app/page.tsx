@@ -730,7 +730,6 @@ export default function Home() {
                     ))}
                   </div>
                 )}
-                {result && <ResultBox value={result} />}
               </Section>
 
               {/* Create / Delete */}
@@ -789,6 +788,8 @@ export default function Home() {
                   </div>
                 </Section>
               )}
+
+              {result && <ResultBox value={result} />}
             </div>
           )}
 
