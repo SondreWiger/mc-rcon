@@ -347,6 +347,183 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, response: result || `Set ${name} ${option} to ${value}` });
       }
 
+      // ── Scoreboard ──
+      case "scoreboard_objectives": {
+        const result = await sendCommand("scoreboard objectives list");
+        return NextResponse.json({ success: true, response: result });
+      }
+      case "scoreboard_add": {
+        const { objective, criteria, displayName } = body;
+        const cmd = displayName
+          ? `scoreboard objectives add ${objective} ${criteria || "dummy"} ${displayName}`
+          : `scoreboard objectives add ${objective} ${criteria || "dummy"}`;
+        const result = await sendCommand(cmd);
+        return NextResponse.json({ success: true, response: result || `Created objective ${objective}` });
+      }
+      case "scoreboard_remove": {
+        const { objective } = body;
+        const result = await sendCommand(`scoreboard objectives remove ${objective}`);
+        return NextResponse.json({ success: true, response: result || `Removed objective ${objective}` });
+      }
+      case "scoreboard_set": {
+        const { target, objective, score } = body;
+        const result = await sendCommand(`scoreboard players set ${target} ${objective} ${score}`);
+        return NextResponse.json({ success: true, response: result || `Set ${target}'s ${objective} to ${score}` });
+      }
+      case "scoreboard_add_score": {
+        const { target, objective, score } = body;
+        const result = await sendCommand(`scoreboard players add ${target} ${objective} ${score}`);
+        return NextResponse.json({ success: true, response: result || `Added ${score} to ${target}'s ${objective}` });
+      }
+      case "scoreboard_remove_score": {
+        const { target, objective, score } = body;
+        const result = await sendCommand(`scoreboard players remove ${target} ${objective} ${score}`);
+        return NextResponse.json({ success: true, response: result || `Removed ${score} from ${target}'s ${objective}` });
+      }
+      case "scoreboard_get": {
+        const { target, objective } = body;
+        const cmd = objective ? `scoreboard players get ${target} ${objective}` : `scoreboard players list ${target}`;
+        const result = await sendCommand(cmd);
+        return NextResponse.json({ success: true, response: result });
+      }
+      case "scoreboard_display": {
+        const { slot, objective } = body;
+        const cmd = objective ? `scoreboard objectives setdisplay ${slot} ${objective}` : `scoreboard objectives setdisplay ${slot}`;
+        const result = await sendCommand(cmd);
+        return NextResponse.json({ success: true, response: result || `Set display slot ${slot}` });
+      }
+      case "scoreboard_reset": {
+        const { target, objective } = body;
+        const cmd = objective ? `scoreboard players reset ${target} ${objective}` : `scoreboard players reset ${target}`;
+        const result = await sendCommand(cmd);
+        return NextResponse.json({ success: true, response: result || `Reset scores for ${target}` });
+      }
+
+      // ── Boss Bar ──
+      case "bossbar_create": {
+        const { id, title, color: bc, style, range, value, max } = body;
+        const cmd = `bossbar add ${id} ${title || "Boss"}`;
+        await sendCommand(cmd);
+        if (bc) await sendCommand(`bossbar set ${id} color ${bc}`);
+        if (style) await sendCommand(`bossbar set ${id} style ${style}`);
+        if (range) await sendCommand(`bossbar set ${id} range ${range}`);
+        if (value && max) await sendCommand(`bossbar set ${id} value ${value} max ${max}`);
+        return NextResponse.json({ success: true, response: `Created bossbar ${id}` });
+      }
+      case "bossbar_set": {
+        const { id, title, value, max, visible, color: bc, style, range, players: bp } = body;
+        if (title) await sendCommand(`bossbar set ${id} name ${title}`);
+        if (value && max) await sendCommand(`bossbar set ${id} value ${value} max ${max}`);
+        else if (value) await sendCommand(`bossbar set ${id} value ${value}`);
+        if (visible !== undefined) await sendCommand(`bossbar set ${id} visible ${visible}`);
+        if (bc) await sendCommand(`bossbar set ${id} color ${bc}`);
+        if (style) await sendCommand(`bossbar set ${id} style ${style}`);
+        if (range) await sendCommand(`bossbar set ${id} range ${range}`);
+        if (bp) await sendCommand(`bossbar set ${id} players ${bp}`);
+        return NextResponse.json({ success: true, response: `Updated bossbar ${id}` });
+      }
+      case "bossbar_remove": {
+        const { id } = body;
+        const result = await sendCommand(`bossbar remove ${id}`);
+        return NextResponse.json({ success: true, response: result || `Removed bossbar ${id}` });
+      }
+      case "bossbar_list": {
+        const result = await sendCommand("bossbar list");
+        return NextResponse.json({ success: true, response: result });
+      }
+
+      // ── Tag ──
+      case "tag_add": {
+        const { target, tag } = body;
+        const result = await sendCommand(`tag ${target} add ${tag}`);
+        return NextResponse.json({ success: true, response: result || `Added tag ${tag} to ${target}` });
+      }
+      case "tag_remove": {
+        const { target, tag } = body;
+        const result = await sendCommand(`tag ${target} remove ${tag}`);
+        return NextResponse.json({ success: true, response: result || `Removed tag ${tag} from ${target}` });
+      }
+      case "tag_list": {
+        const { target } = body;
+        const result = await sendCommand(`tag ${target} list`);
+        return NextResponse.json({ success: true, response: result });
+      }
+
+      // ── Recipe ──
+      case "recipe_grant": {
+        const { player, recipe } = body;
+        const result = await sendCommand(`recipe give ${player} ${recipe}`);
+        return NextResponse.json({ success: true, response: result || `Granted recipe to ${player}` });
+      }
+      case "recipe_revoke": {
+        const { player, recipe } = body;
+        const result = await sendCommand(`recipe take ${player} ${recipe}`);
+        return NextResponse.json({ success: true, response: result || `Revoked recipe from ${player}` });
+      }
+
+      // ── Attribute ──
+      case "attribute_get": {
+        const { target, attribute } = body;
+        const result = await sendCommand(`attribute ${target} ${attribute} get`);
+        return NextResponse.json({ success: true, response: result });
+      }
+      case "attribute_set": {
+        const { target, attribute, value, base } = body;
+        const cmd = base
+          ? `attribute ${target} ${attribute} base set ${value}`
+          : `attribute ${target} ${attribute} base set ${value}`;
+        const result = await sendCommand(cmd);
+        return NextResponse.json({ success: true, response: result || `Set ${attribute} to ${value}` });
+      }
+      case "attribute_modifiers": {
+        const { target, attribute } = body;
+        const result = await sendCommand(`attribute ${target} ${attribute} modifier list`);
+        return NextResponse.json({ success: true, response: result });
+      }
+
+      // ── Spread ──
+      case "spread": {
+        const { players: sp, minRange, maxRange, respectTeams } = body;
+        const cmd = `spreadplayers ${body.x || "~"} ${body.z || "~"} ${minRange || "10"} ${maxRange || "30"} ${respectTeams === "true" ? "true" : "false"} ${sp || "@a"}`;
+        const result = await sendCommand(cmd);
+        return NextResponse.json({ success: true, response: result });
+      }
+
+      // ── Sound / Particle ──
+      case "playsound": {
+        const { sound, source, target: st, volume, pitch } = body;
+        const cmd = `playsound ${sound} ${source || "master"} ${st || "@a"} ~ ~ ~ ${volume || "1"} ${pitch || "1"}`;
+        const result = await sendCommand(cmd);
+        return NextResponse.json({ success: true, response: result });
+      }
+      case "particle": {
+        const { particle, x, y, z, dx, dy, dz, speed, count: pc, target: pt } = body;
+        const cmd = `particle ${particle} ${x || "~"} ${y || "~"} ${z || "~"} ${dx || "0"} ${dy || "0"} ${dz || "0"} ${speed || "0"} ${pc || "1"} ${pt || ""}`.trim();
+        const result = await sendCommand(cmd);
+        return NextResponse.json({ success: true, response: result });
+      }
+
+      // ── Schedule ──
+      case "schedule": {
+        const { delay, command: sc, type: stype } = body;
+        const cmd = stype === "append"
+          ? `schedule ${sc} ${delay} append`
+          : stype === "replace"
+          ? `schedule ${sc} ${delay} replace`
+          : `schedule ${sc} ${delay}`;
+        const result = await sendCommand(cmd);
+        return NextResponse.json({ success: true, response: result || `Scheduled: ${sc} in ${delay}` });
+      }
+      case "schedule_clear": {
+        const { command: sc } = body;
+        const result = await sendCommand(sc ? `schedule clear ${sc}` : "schedule clear");
+        return NextResponse.json({ success: true, response: result || "Cleared scheduled commands" });
+      }
+      case "schedule_list": {
+        const result = await sendCommand("schedule list");
+        return NextResponse.json({ success: true, response: result });
+      }
+
       // ── Raw Command ──
       case "raw": {
         const { command } = body;

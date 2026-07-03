@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import {
   MessageSquare, Users, Server, Globe, Terminal,
   Menu, X, LogOut, Send, Settings, Zap, Trophy, Type,
-  Play, Pause, RotateCcw
+  Play, Pause, RotateCcw, Wrench
 } from "lucide-react";
 
 interface ChatMessage { time: string; player: string; message: string; }
@@ -28,7 +28,7 @@ function saveConfig(c: { host: string; port: string; password: string }) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(c)); } catch {}
 }
 
-type Tab = "chat" | "players" | "server" | "world" | "titles" | "teams" | "console";
+type Tab = "chat" | "players" | "server" | "world" | "titles" | "teams" | "tools" | "console";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "0.75rem 1rem", fontSize: "0.9375rem", outline: "none",
@@ -177,6 +177,58 @@ export default function Home() {
   const [teamDisplayName, setTeamDisplayName] = useState("");
   const [teamPrefix, setTeamPrefix] = useState("");
   const [teamSuffix, setTeamSuffix] = useState("");
+
+  // Scoreboard
+  const [sbObjective, setSbObjective] = useState("");
+  const [sbCriteria, setSbCriteria] = useState("dummy");
+  const [sbDisplayName, setSbDisplayName] = useState("");
+  const [sbTarget, setSbTarget] = useState("");
+  const [sbScore, setSbScore] = useState("0");
+  const [sbSlot, setSbSlot] = useState("sidebar");
+
+  // Boss Bar
+  const [bbId, setBbId] = useState("");
+  const [bbTitle, setBbTitle] = useState("");
+  const [bbColor, setBbColor] = useState("purple");
+  const [bbStyle, setBbStyle] = useState("notched_6");
+  const [bbValue, setBbValue] = useState("0");
+  const [bbMax, setBbMax] = useState("100");
+  const [bbRange, setBbRange] = useState("0");
+  const bbVisible = "true";
+
+  // Tag
+  const [tagName, setTagName] = useState("");
+  const [tagTarget, setTagTarget] = useState("");
+
+  // Recipe
+  const [recipeTarget, setRecipeTarget] = useState("");
+  const [recipeName, setRecipeName] = useState("*");
+
+  // Attribute
+  const [attrTarget, setAttrTarget] = useState("");
+  const [attrName, setAttrName] = useState("generic.max_health");
+  const [attrValue, setAttrValue] = useState("20");
+
+  // Spread
+  const [spreadPlayers, setSpreadPlayers] = useState("@a");
+  const [spreadMin, setSpreadMin] = useState("10");
+  const [spreadMax, setSpreadMax] = useState("30");
+
+  // Sound / Particle
+  const [soundName, setSoundName] = useState("entity.player.levelup");
+  const [soundSource, setSoundSource] = useState("master");
+  const [soundVolume, setSoundVolume] = useState("1");
+  const [soundPitch, setSoundPitch] = useState("1");
+  const [particleName, setParticleName] = useState("minecraft:happy_villager");
+  const [particleX, setParticleX] = useState("~");
+  const [particleY, setParticleY] = useState("~");
+  const particleZ = "~";
+  const [particleCount, setParticleCount] = useState("10");
+
+  // Schedule
+  const [schedCommand, setSchedCommand] = useState("");
+  const [schedDelay, setSchedDelay] = useState("10s");
+  const [schedType, setSchedType] = useState("append");
 
   // Console
   const [rawCommand, setRawCommand] = useState("");
@@ -362,6 +414,7 @@ export default function Home() {
     { id: "players", label: "Players", icon: <Users size={14} /> },
     { id: "titles", label: "Titles", icon: <Type size={14} /> },
     { id: "teams", label: "Teams", icon: <Trophy size={14} /> },
+    { id: "tools", label: "Tools", icon: <Wrench size={14} /> },
     { id: "server", label: "Server", icon: <Server size={14} /> },
     { id: "world", label: "World", icon: <Globe size={14} /> },
     { id: "console", label: "Console", icon: <Terminal size={14} /> },
@@ -790,12 +843,160 @@ export default function Home() {
 
               {result && <ResultBox value={result} />}
             </div>
+           )}
+
+          {/* ── TOOLS ── */}
+          {tab === "tools" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "clamp(2rem, 3vw, 3rem)" }}>
+              <div><div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: "0.625rem", letterSpacing: "0.1em", color: "var(--red)", border: "1px solid var(--red)", padding: "3px 8px", textTransform: "uppercase" as const }}>05</span><h2 style={{ fontSize: "clamp(1.875rem, 4vw, 3rem)", fontWeight: 900, letterSpacing: "-0.02em", color: "var(--navy)" }}>Tools</h2></div><div style={{ width: "3rem", height: "3px", background: "var(--red)", marginBottom: "clamp(2rem, 3vw, 3rem)" }} /></div>
+
+              {/* Scoreboard */}
+              <Section title="Scoreboard" number="A">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <Field label="Objective Name"><input type="text" value={sbObjective} onChange={(e) => setSbObjective(e.target.value)} style={inputStyle} placeholder="my_score" /></Field>
+                  <Field label="Criteria"><select value={sbCriteria} onChange={(e) => setSbCriteria(e.target.value)} style={inputStyle}><option value="dummy">dummy</option><option value="health">health</option><option value="xp">xp</option><option value="level">level</option><option value="food">food</option><option value="air">air</option><option value="armor">armor</option></select></Field>
+                  <Field label="Display Name"><input type="text" value={sbDisplayName} onChange={(e) => setSbDisplayName(e.target.value)} style={inputStyle} placeholder="Optional" /></Field>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
+                  <Btn color="navy" onClick={() => run("scoreboard_add", { objective: sbObjective, criteria: sbCriteria, displayName: sbDisplayName })} disabled={!sbObjective}>Create Objective</Btn>
+                  <Btn color="red" onClick={() => run("scoreboard_remove", { objective: sbObjective })} disabled={!sbObjective}>Remove Objective</Btn>
+                  <Btn color="outline" onClick={() => run("scoreboard_objectives")}>List Objectives</Btn>
+                </div>
+                <div style={{ borderTop: "1px solid var(--grey-light)", paddingTop: "1rem" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: "1rem", alignItems: "end" }}>
+                    <Field label="Target"><input type="text" value={sbTarget} onChange={(e) => setSbTarget(e.target.value)} style={inputStyle} placeholder="@a or player" /></Field>
+                    <Field label="Objective"><input type="text" value={sbObjective} onChange={(e) => setSbObjective(e.target.value)} style={inputStyle} placeholder="my_score" /></Field>
+                    <Field label="Score"><input type="number" value={sbScore} onChange={(e) => setSbScore(e.target.value)} style={inputStyle} /></Field>
+                  </div>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
+                    <Btn color="navy" onClick={() => run("scoreboard_set", { target: sbTarget, objective: sbObjective, score: sbScore })}>Set</Btn>
+                    <Btn color="outline" onClick={() => run("scoreboard_add_score", { target: sbTarget, objective: sbObjective, score: sbScore })}>Add</Btn>
+                    <Btn color="outline" onClick={() => run("scoreboard_remove_score", { target: sbTarget, objective: sbObjective, score: sbScore })}>Remove</Btn>
+                    <Btn color="outline" onClick={() => run("scoreboard_get", { target: sbTarget, objective: sbObjective })}>Get</Btn>
+                    <Btn color="red" onClick={() => run("scoreboard_reset", { target: sbTarget, objective: sbObjective })}>Reset</Btn>
+                  </div>
+                </div>
+                <div style={{ borderTop: "1px solid var(--grey-light)", paddingTop: "1rem", marginTop: "1rem" }}>
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "end" }}>
+                    <div><Field label="Display Slot"><select value={sbSlot} onChange={(e) => setSbSlot(e.target.value)} style={{ ...inputStyle, width: "150px" }}><option value="sidebar">sidebar</option><option value="list">list</option><option value="tab">tab</option><option value="below_name">below_name</option></select></Field></div>
+                    <Btn color="navy" onClick={() => run("scoreboard_display", { slot: sbSlot, objective: sbObjective })}>Set Display</Btn>
+                    <Btn color="outline" onClick={() => run("scoreboard_display", { slot: sbSlot })}>Clear Display</Btn>
+                  </div>
+                </div>
+              </Section>
+
+              {/* Boss Bar */}
+              <Section title="Boss Bar" number="B">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <Field label="ID"><input type="text" value={bbId} onChange={(e) => setBbId(e.target.value)} style={inputStyle} placeholder="mynamespace:bar" /></Field>
+                  <Field label="Title"><input type="text" value={bbTitle} onChange={(e) => setBbTitle(e.target.value)} style={inputStyle} placeholder="Boss HP" /></Field>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <Field label="Color"><select value={bbColor} onChange={(e) => setBbColor(e.target.value)} style={inputStyle}>{["pink","blue","red","green","yellow","purple","white"].map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
+                  <Field label="Style"><select value={bbStyle} onChange={(e) => setBbStyle(e.target.value)} style={inputStyle}>{["notched_6","notched_10","notched_12","notched_20","progress"].map(s=><option key={s} value={s}>{s}</option>)}</select></Field>
+                  <Field label="Value"><input type="number" value={bbValue} onChange={(e) => setBbValue(e.target.value)} style={inputStyle} /></Field>
+                  <Field label="Max"><input type="number" value={bbMax} onChange={(e) => setBbMax(e.target.value)} style={inputStyle} /></Field>
+                  <Field label="Range"><input type="number" value={bbRange} onChange={(e) => setBbRange(e.target.value)} style={inputStyle} /></Field>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <Btn color="navy" onClick={() => run("bossbar_create", { id: bbId, title: bbTitle, color: bbColor, style: bbStyle, value: bbValue, max: bbMax, range: bbRange })}>Create</Btn>
+                  <Btn color="outline" onClick={() => run("bossbar_set", { id: bbId, title: bbTitle, value: bbValue, max: bbMax, color: bbColor, style: bbStyle, visible: bbVisible, range: bbRange })}>Update</Btn>
+                  <Btn color="outline" onClick={() => run("bossbar_set", { id: bbId, visible: "true" })}>Show</Btn>
+                  <Btn color="outline" onClick={() => run("bossbar_set", { id: bbId, visible: "false" })}>Hide</Btn>
+                  <Btn color="red" onClick={() => run("bossbar_remove", { id: bbId })}>Remove</Btn>
+                  <Btn color="outline" onClick={() => run("bossbar_list")}>List</Btn>
+                </div>
+              </Section>
+
+              {/* Tags */}
+              <Section title="Tags" number="C">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <Field label="Target"><input type="text" value={tagTarget} onChange={(e) => setTagTarget(e.target.value)} style={inputStyle} placeholder="@a or player" /></Field>
+                  <Field label="Tag Name"><input type="text" value={tagName} onChange={(e) => setTagName(e.target.value)} style={inputStyle} placeholder="my_tag" /></Field>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <Btn color="navy" onClick={() => run("tag_add", { target: tagTarget, tag: tagName })} disabled={!tagTarget || !tagName}>Add Tag</Btn>
+                  <Btn color="red" onClick={() => run("tag_remove", { target: tagTarget, tag: tagName })} disabled={!tagTarget || !tagName}>Remove Tag</Btn>
+                  <Btn color="outline" onClick={() => run("tag_list", { target: tagTarget })} disabled={!tagTarget}>List Tags</Btn>
+                </div>
+              </Section>
+
+              {/* Recipes */}
+              <Section title="Recipes" number="D">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <Field label="Player"><input type="text" value={recipeTarget} onChange={(e) => setRecipeTarget(e.target.value)} style={inputStyle} placeholder="@a or player" /></Field>
+                  <Field label="Recipe"><input type="text" value={recipeName} onChange={(e) => setRecipeName(e.target.value)} style={inputStyle} placeholder="* for all or recipe id" /></Field>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <Btn color="navy" onClick={() => run("recipe_grant", { player: recipeTarget, recipe: recipeName })}>Grant</Btn>
+                  <Btn color="red" onClick={() => run("recipe_revoke", { player: recipeTarget, recipe: recipeName })}>Revoke</Btn>
+                </div>
+              </Section>
+
+              {/* Attributes */}
+              <Section title="Attributes" number="E">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <Field label="Target"><input type="text" value={attrTarget} onChange={(e) => setAttrTarget(e.target.value)} style={inputStyle} placeholder="@a or player" /></Field>
+                  <Field label="Attribute"><select value={attrName} onChange={(e) => setAttrName(e.target.value)} style={inputStyle}>{["generic.max_health","generic.movement_speed","generic.attack_damage","generic.armor","generic.follow_range","generic.knockback_resistance","generic.attack_speed","generic.luck","horse.jump_strength","zombie.spawn_reinforcements"].map(a=><option key={a} value={a}>{a}</option>)}</select></Field>
+                  <Field label="Value"><input type="number" value={attrValue} onChange={(e) => setAttrValue(e.target.value)} style={inputStyle} /></Field>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <Btn color="navy" onClick={() => run("attribute_set", { target: attrTarget, attribute: attrName, value: attrValue })}>Set</Btn>
+                  <Btn color="outline" onClick={() => run("attribute_get", { target: attrTarget, attribute: attrName })}>Get</Btn>
+                </div>
+              </Section>
+
+              {/* Spread Players */}
+              <Section title="Spread Players" number="F">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <Field label="Players"><input type="text" value={spreadPlayers} onChange={(e) => setSpreadPlayers(e.target.value)} style={inputStyle} placeholder="@a" /></Field>
+                  <Field label="Min Distance"><input type="number" value={spreadMin} onChange={(e) => setSpreadMin(e.target.value)} style={inputStyle} /></Field>
+                  <Field label="Max Distance"><input type="number" value={spreadMax} onChange={(e) => setSpreadMax(e.target.value)} style={inputStyle} /></Field>
+                </div>
+                <Btn color="navy" onClick={() => run("spread", { players: spreadPlayers, minRange: spreadMin, maxRange: spreadMax, respectTeams: "false", x: "~", z: "~" })}>Spread</Btn>
+              </Section>
+
+              {/* Sound / Particle */}
+              <Section title="Sound & Particles" number="G">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <Field label="Sound"><input type="text" value={soundName} onChange={(e) => setSoundName(e.target.value)} style={inputStyle} placeholder="entity.player.levelup" /></Field>
+                  <Field label="Source"><select value={soundSource} onChange={(e) => setSoundSource(e.target.value)} style={inputStyle}>{["master","music","record","weather","block","hostile","neutral","player","voice"].map(s=><option key={s} value={s}>{s}</option>)}</select></Field>
+                  <Field label="Volume"><input type="number" value={soundVolume} onChange={(e) => setSoundVolume(e.target.value)} style={inputStyle} /></Field>
+                  <Field label="Pitch"><input type="number" value={soundPitch} onChange={(e) => setSoundPitch(e.target.value)} style={inputStyle} step="0.1" /></Field>
+                </div>
+                <Btn color="navy" onClick={() => run("playsound", { sound: soundName, source: soundSource, target: "@a", volume: soundVolume, pitch: soundPitch })} style={{ marginBottom: "1.5rem" }}>Play Sound</Btn>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <Field label="Particle"><input type="text" value={particleName} onChange={(e) => setParticleName(e.target.value)} style={inputStyle} placeholder="minecraft:happy_villager" /></Field>
+                  <Field label="X"><input type="text" value={particleX} onChange={(e) => setParticleX(e.target.value)} style={inputStyle} /></Field>
+                  <Field label="Y"><input type="text" value={particleY} onChange={(e) => setParticleY(e.target.value)} style={inputStyle} /></Field>
+                  <Field label="Count"><input type="number" value={particleCount} onChange={(e) => setParticleCount(e.target.value)} style={inputStyle} /></Field>
+                </div>
+                <Btn color="navy" onClick={() => run("particle", { particle: particleName, x: particleX, y: particleY, z: particleZ, dx: "0.5", dy: "0.5", dz: "0.5", speed: "0", count: particleCount, target: "@a" })}>Spawn Particle</Btn>
+              </Section>
+
+              {/* Schedule */}
+              <Section title="Scheduled Commands" number="H">
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr auto", gap: "1rem", marginBottom: "1rem" }}>
+                  <Field label="Command"><input type="text" value={schedCommand} onChange={(e) => setSchedCommand(e.target.value)} style={inputStyle} placeholder="say Hello world" /></Field>
+                  <Field label="Delay"><input type="text" value={schedDelay} onChange={(e) => setSchedDelay(e.target.value)} style={inputStyle} placeholder="10s or 1d" /></Field>
+                  <div><Field label="Mode"><select value={schedType} onChange={(e) => setSchedType(e.target.value)} style={{ ...inputStyle, width: "100px" }}><option value="append">Append</option><option value="replace">Replace</option></select></Field></div>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <Btn color="navy" onClick={() => run("schedule", { command: schedCommand, delay: schedDelay, type: schedType })} disabled={!schedCommand}>Schedule</Btn>
+                  <Btn color="outline" onClick={() => run("schedule_list")}>List Scheduled</Btn>
+                  <Btn color="red" onClick={() => run("schedule_clear", { command: schedCommand })}>Clear All</Btn>
+                </div>
+                <span style={{ fontSize: "0.75rem", color: "var(--grey)", fontFamily: "var(--font-mono), monospace", marginTop: "0.75rem", display: "block" }}>Delay formats: 1s, 5m, 1h, 1d</span>
+              </Section>
+
+              {result && <ResultBox value={result} />}
+            </div>
           )}
 
           {/* ── SERVER ── */}
           {tab === "server" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "clamp(2rem, 3vw, 3rem)" }}>
-              <div><div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: "0.625rem", letterSpacing: "0.1em", color: "var(--red)", border: "1px solid var(--red)", padding: "3px 8px", textTransform: "uppercase" }}>05</span><h2 style={{ fontSize: "clamp(1.875rem, 4vw, 3rem)", fontWeight: 900, letterSpacing: "-0.02em", color: "var(--navy)" }}>Server</h2></div><div style={{ width: "3rem", height: "3px", background: "var(--red)", marginBottom: "clamp(2rem, 3vw, 3rem)" }} /></div>
+              <div><div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: "0.625rem", letterSpacing: "0.1em", color: "var(--red)", border: "1px solid var(--red)", padding: "3px 8px", textTransform: "uppercase" }}>06</span><h2 style={{ fontSize: "clamp(1.875rem, 4vw, 3rem)", fontWeight: 900, letterSpacing: "-0.02em", color: "var(--navy)" }}>Server</h2></div><div style={{ width: "3rem", height: "3px", background: "var(--red)", marginBottom: "clamp(2rem, 3vw, 3rem)" }} /></div>
               <Section title="Information" number="A"><div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                 <Btn color="outline" onClick={() => run("list")}>Player List</Btn><Btn color="outline" onClick={() => run("tps")}>TPS</Btn>
                 <Btn color="outline" onClick={() => run("raw", { command: "motd" })}>MOTD</Btn><Btn color="outline" onClick={() => run("raw", { command: "seed" })}>Seed</Btn>
@@ -816,7 +1017,7 @@ export default function Home() {
           {/* ── WORLD ── */}
           {tab === "world" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "clamp(2rem, 3vw, 3rem)" }}>
-              <div><div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: "0.625rem", letterSpacing: "0.1em", color: "var(--red)", border: "1px solid var(--red)", padding: "3px 8px", textTransform: "uppercase" }}>06</span><h2 style={{ fontSize: "clamp(1.875rem, 4vw, 3rem)", fontWeight: 900, letterSpacing: "-0.02em", color: "var(--navy)" }}>World</h2></div><div style={{ width: "3rem", height: "3px", background: "var(--red)", marginBottom: "clamp(2rem, 3vw, 3rem)" }} /></div>
+              <div><div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: "0.625rem", letterSpacing: "0.1em", color: "var(--red)", border: "1px solid var(--red)", padding: "3px 8px", textTransform: "uppercase" }}>07</span><h2 style={{ fontSize: "clamp(1.875rem, 4vw, 3rem)", fontWeight: 900, letterSpacing: "-0.02em", color: "var(--navy)" }}>World</h2></div><div style={{ width: "3rem", height: "3px", background: "var(--red)", marginBottom: "clamp(2rem, 3vw, 3rem)" }} /></div>
               <Section title="Time" number="A"><div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
                 {["day", "noon", "sunset", "night", "midnight"].map((t) => (<Btn key={t} color="outline" onClick={() => run("time", { value: t })}>{t}</Btn>))}
                 <input type="number" value={timeValue} onChange={(e) => setTimeValue(e.target.value)} style={{ ...inputStyle, width: "6rem" }} />
@@ -863,7 +1064,7 @@ export default function Home() {
           {/* ── CONSOLE ── */}
           {tab === "console" && (
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: "0.625rem", letterSpacing: "0.1em", color: "var(--red)", border: "1px solid var(--red)", padding: "3px 8px", textTransform: "uppercase" }}>07</span><h2 style={{ fontSize: "clamp(1.875rem, 4vw, 3rem)", fontWeight: 900, letterSpacing: "-0.02em", color: "var(--navy)" }}>Console</h2></div>
+              <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: "0.625rem", letterSpacing: "0.1em", color: "var(--red)", border: "1px solid var(--red)", padding: "3px 8px", textTransform: "uppercase" }}>08</span><h2 style={{ fontSize: "clamp(1.875rem, 4vw, 3rem)", fontWeight: 900, letterSpacing: "-0.02em", color: "var(--navy)" }}>Console</h2></div>
               <div style={{ width: "3rem", height: "3px", background: "var(--red)", marginBottom: "clamp(2rem, 3vw, 3rem)" }} />
               <div style={{ background: "var(--navy)", border: "1px solid var(--navy)", padding: "clamp(2rem, 3vw, 3rem)", marginBottom: "1.5rem", minHeight: "50vh", maxHeight: "60vh", overflowY: "auto", fontFamily: "var(--font-mono), monospace" }}>
                 {consoleOutput.length === 0 ? <span style={{ color: "var(--grey-light)", fontSize: "0.875rem" }}>Type commands below.</span>
