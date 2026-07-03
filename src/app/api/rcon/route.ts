@@ -255,8 +255,8 @@ export async function POST(request: Request) {
         try {
           const result = await sendCommand("team list");
           let teamNames: string[] = [];
-          const matchKnown = result.match(/Known teams \((\d+)\):\s*(.*)/i);
-          const matchThere = result.match(/There are \d+ team\(s\):\s*\[(.*)\]/i);
+          const matchKnown = result.match(/Known teams \((\d+)\):\s*\[?(.*)\]?/i);
+          const matchThere = result.match(/There are \d+ team\(s\):\s*\[?(.*)\]?/i);
           const matchList = result.match(/There are \d+ team\(s\):\s*\n(.*)/i);
           if (matchKnown && matchKnown[2].trim()) {
             teamNames = matchKnown[2].split(",").map((n: string) => n.trim()).filter(Boolean);
@@ -273,10 +273,10 @@ export async function POST(request: Request) {
           if (teamNames.length === 0) {
             return NextResponse.json({ success: true, teams: [], raw: result });
           }
-          const strip = (s: string) => s.replace(/\u00A7[0-9a-fk-or]/gi, "").trim();
+          const strip = (s: string) => s.replace(/\u00A7[0-9a-fk-or]/gi, "").replace(/[\[\]]/g, "").trim();
           const teams: { name: string; displayName: string; color: string; players: string[] }[] = [];
           for (const rawName of teamNames) {
-            const name = rawName.trim();
+            const name = rawName.replace(/[\[\]]/g, "").trim();
             const displayName = strip(rawName);
             try {
               const info = await sendCommand(`team list ${name}`);
