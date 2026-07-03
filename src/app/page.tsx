@@ -268,8 +268,8 @@ export default function Home() {
     if (d.success) {
       setResult(d.response || "Done");
       if (d.response && action === "list") {
-        const m = d.response.match(/online players \((\d+)\):\s*(.*)/i);
-        if (m) setOnlinePlayers(m[2].split(", ").filter(Boolean));
+        const m = d.response.match(/online players \((\d+)\):\s*(.*)/i) || d.response.match(/There are \d+ .*? online:\s*(.*)/i);
+        if (m) setOnlinePlayers(m[2]?.split(", ").filter(Boolean) || m[1]?.split(", ").filter(Boolean) || []);
       }
     } else { setResult(`Error: ${d.error}`); }
   };
