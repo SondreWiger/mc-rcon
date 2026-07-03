@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 interface ChatMessage { time: string; player: string; message: string; }
-interface Team { name: string; color: string; players: string[]; }
+interface Team { name: string; displayName: string; color: string; players: string[]; }
 interface CountdownInterval { label: string; seconds: number; sent: boolean; }
 
 const STORAGE_KEY = "mc-rcon-config";
@@ -765,9 +765,9 @@ export default function Home() {
                             width: "2rem", height: "2rem", display: "flex", alignItems: "center", justifyContent: "center",
                             background: MC_COLORS[team.color] || "#555555", color: ["white", "yellow", "gold", "light_gray", "aqua", "green"].includes(team.color) ? "#000" : "#FFF",
                             fontWeight: 900, fontSize: "0.75rem",
-                          }}>{team.name.charAt(0).toUpperCase()}</div>
+                          }}>{(team.displayName || team.name).charAt(0).toUpperCase()}</div>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: "0.9375rem", color: "var(--navy)" }}>{team.name}</div>
+                            <div style={{ fontWeight: 700, fontSize: "0.9375rem", color: "var(--navy)" }}>{team.displayName || team.name}</div>
                             <div style={{ fontSize: "0.75rem", fontFamily: "var(--font-mono), monospace", color: "var(--grey)" }}>
                               {team.players.length} player{team.players.length !== 1 ? "s" : ""} &middot; {team.color}
                             </div>
@@ -797,7 +797,7 @@ export default function Home() {
 
               {/* Edit selected team */}
               {selectedTeam && (
-                <Section title={`Edit: ${selectedTeam}`} number="C">
+                <Section title={`Edit: ${teams.find((t) => t.name === selectedTeam)?.displayName || selectedTeam}`} number="C">
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
                     <Field label="Display Name">
                       <input type="text" value={teamDisplayName} onChange={(e) => setTeamDisplayName(e.target.value)} style={inputStyle} placeholder="My Team" />

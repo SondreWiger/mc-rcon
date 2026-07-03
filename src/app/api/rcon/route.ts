@@ -270,9 +270,11 @@ export async function POST(request: Request) {
           if (teamNames.length === 0) {
             return NextResponse.json({ success: true, teams: [], raw: result });
           }
-          const teams: { name: string; color: string; players: string[] }[] = [];
+          const strip = (s: string) => s.replace(/\u00A7[0-9a-fk-or]/gi, "").trim();
+          const teams: { name: string; displayName: string; color: string; players: string[] }[] = [];
           for (const rawName of teamNames) {
-            const name = rawName.trim().replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
+            const name = rawName.trim();
+            const displayName = strip(rawName);
             try {
               const info = await sendCommand(`team list ${name}`);
               const players: string[] = [];
@@ -286,9 +288,9 @@ export async function POST(request: Request) {
               let color = "white";
               const colorMatch = info.match(/color:\s*(\w+)/i);
               if (colorMatch) color = colorMatch[1].toLowerCase();
-              teams.push({ name, color, players });
+              teams.push({ name, displayName, color, players });
             } catch {
-              teams.push({ name, color: "white", players: [] });
+              teams.push({ name, displayName, color: "white", players: [] });
             }
           }
           return NextResponse.json({ success: true, teams, raw: result });
