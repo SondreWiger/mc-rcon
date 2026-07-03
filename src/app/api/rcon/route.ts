@@ -318,17 +318,17 @@ export async function POST(request: Request) {
       }
       case "team_displayname": {
         const { name, displayName } = body;
-        const result = await sendCommand(`team modify ${name} displayName {"text":"${displayName}"}`);
+        const result = await sendCommand(`team modify ${name} displayName ${displayName}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} display name to ${displayName}` });
       }
       case "team_prefix": {
         const { name, prefix } = body;
-        const result = await sendCommand(`team modify ${name} prefix {"text":"${prefix}"}`);
+        const result = await sendCommand(`team modify ${name} prefix ${prefix}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} prefix to ${prefix}` });
       }
       case "team_suffix": {
         const { name, suffix } = body;
-        const result = await sendCommand(`team modify ${name} suffix {"text":"${suffix}"}`);
+        const result = await sendCommand(`team modify ${name} suffix ${suffix}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} suffix to ${suffix}` });
       }
       case "team_join": {
