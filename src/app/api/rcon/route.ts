@@ -256,11 +256,14 @@ export async function POST(request: Request) {
           const result = await sendCommand("team list");
           let teamNames: string[] = [];
           const matchKnown = result.match(/Known teams \((\d+)\):\s*(.*)/i);
-          const matchThere = result.match(/There are \d+ team\(s\):\s*\[(.*?)\]/i);
+          const matchThere = result.match(/There are \d+ team\(s\):\s*\[(.*)\]/i);
+          const matchList = result.match(/There are \d+ team\(s\):\s*\n(.*)/i);
           if (matchKnown && matchKnown[2].trim()) {
             teamNames = matchKnown[2].split(",").map((n: string) => n.trim()).filter(Boolean);
           } else if (matchThere && matchThere[1].trim()) {
             teamNames = matchThere[1].split(",").map((n: string) => n.trim()).filter(Boolean);
+          } else if (matchList && matchList[1].trim()) {
+            teamNames = matchList[1].split(",").map((n: string) => n.trim()).filter(Boolean);
           } else {
             const matchColon = result.match(/:\s*(.+)/);
             if (matchColon && matchColon[1].trim()) {
@@ -275,7 +278,6 @@ export async function POST(request: Request) {
           for (const rawName of teamNames) {
             const name = rawName.trim();
             const displayName = strip(rawName);
-            const charCodes = [...name].map((c: string) => c.charCodeAt(0));
             try {
               const info = await sendCommand(`team list ${name}`);
               const players: string[] = [];
@@ -294,7 +296,7 @@ export async function POST(request: Request) {
               teams.push({ name, displayName, color: "white", players: [] });
             }
           }
-          return NextResponse.json({ success: true, teams, raw: result, debug: teamNames.map((n: string) => ({ raw: n, trimmed: n.trim(), charCodes: [...n.trim()].map((c: string) => c.charCodeAt(0)) })) });
+          return NextResponse.json({ success: true, teams, raw: result });
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
           return NextResponse.json({ success: false, error: `team list failed: ${msg}` });
