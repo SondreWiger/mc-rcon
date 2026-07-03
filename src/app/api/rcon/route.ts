@@ -205,6 +205,126 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, response: result });
       }
 
+      // ── Titles ──
+      case "title": {
+        const { player, text, color, fade, stay, fadeOut } = body;
+        const p = player || "@a";
+        if (fade || stay || fadeOut) {
+          await sendCommand(`title ${p} times ${fade || 10} ${stay || 40} ${fadeOut || 10}`);
+        }
+        const jsonText = JSON.stringify({
+          text: text || "",
+          color: color || "white",
+        });
+        await sendCommand(`title ${p} title ${jsonText}`);
+        return NextResponse.json({ success: true });
+      }
+      case "subtitle": {
+        const { player, text, color } = body;
+        const p = player || "@a";
+        const jsonText = JSON.stringify({
+          text: text || "",
+          color: color || "white",
+        });
+        await sendCommand(`title ${p} subtitle ${jsonText}`);
+        return NextResponse.json({ success: true });
+      }
+      case "title_actionbar": {
+        const { player, text, color } = body;
+        const p = player || "@a";
+        const jsonText = JSON.stringify({
+          text: text || "",
+          color: color || "white",
+        });
+        await sendCommand(`title ${p} actionbar ${jsonText}`);
+        return NextResponse.json({ success: true });
+      }
+      case "title_clear": {
+        const { player } = body;
+        await sendCommand(`title ${player || "@a"} clear`);
+        return NextResponse.json({ success: true });
+      }
+      case "title_reset": {
+        const { player } = body;
+        await sendCommand(`title ${player || "@a"} reset`);
+        return NextResponse.json({ success: true });
+      }
+
+      // ── Teams ──
+      case "team_list": {
+        const result = await sendCommand("team list");
+        const teamNames = result.replace(/Known teams \(\d+\): /, "").split(", ").filter(Boolean);
+        const teams: { name: string; color: string; players: string[] }[] = [];
+        for (const name of teamNames) {
+          try {
+            const info = await sendCommand(`team list ${name}`);
+            const colorMatch = info.match(/color: (\w+)/);
+            const playersMatch = info.match(/players: \[(.*?)\]/);
+            teams.push({
+              name,
+              color: colorMatch ? colorMatch[1] : "white",
+              players: playersMatch ? playersMatch[1].split(", ").filter(Boolean) : [],
+            });
+          } catch {
+            teams.push({ name, color: "white", players: [] });
+          }
+        }
+        return NextResponse.json({ success: true, teams });
+      }
+      case "team_add": {
+        const { name } = body;
+        await sendCommand(`team add ${name}`);
+        return NextResponse.json({ success: true, response: `Created team ${name}` });
+      }
+      case "team_remove": {
+        const { name } = body;
+        await sendCommand(`team remove ${name}`);
+        return NextResponse.json({ success: true, response: `Removed team ${name}` });
+      }
+      case "team_color": {
+        const { name, color } = body;
+        await sendCommand(`team modify ${name} color ${color}`);
+        return NextResponse.json({ success: true, response: `Set ${name} color to ${color}` });
+      }
+      case "team_displayname": {
+        const { name, displayName } = body;
+        const jsonText = JSON.stringify({ text: displayName });
+        await sendCommand(`team modify ${name} displayName ${jsonText}`);
+        return NextResponse.json({ success: true, response: `Set ${name} display name to ${displayName}` });
+      }
+      case "team_prefix": {
+        const { name, prefix } = body;
+        const jsonText = JSON.stringify({ text: prefix });
+        await sendCommand(`team modify ${name} prefix ${jsonText}`);
+        return NextResponse.json({ success: true, response: `Set ${name} prefix to ${prefix}` });
+      }
+      case "team_suffix": {
+        const { name, suffix } = body;
+        const jsonText = JSON.stringify({ text: suffix });
+        await sendCommand(`team modify ${name} suffix ${jsonText}`);
+        return NextResponse.json({ success: true, response: `Set ${name} suffix to ${suffix}` });
+      }
+      case "team_join": {
+        const { name, player } = body;
+        await sendCommand(`team join ${name} ${player}`);
+        return NextResponse.json({ success: true, response: `Added ${player} to ${name}` });
+      }
+      case "team_leave": {
+        const { player } = body;
+        await sendCommand(`team leave ${player}`);
+        return NextResponse.json({ success: true, response: `Removed ${player} from their team` });
+      }
+      case "team_empty": {
+        const { name } = body;
+        await sendCommand(`team empty ${name}`);
+        return NextResponse.json({ success: true, response: `Emptied team ${name}` });
+      }
+      case "team_option": {
+        const { name, option, value } = body;
+        await sendCommand(`team modify ${name} ${option} ${value}`);
+        return NextResponse.json({ success: true, response: `Set ${name} ${option} to ${value}` });
+      }
+
       // ── Raw Command ──
       case "raw": {
         const { command } = body;
