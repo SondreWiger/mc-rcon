@@ -274,7 +274,7 @@ export async function POST(request: Request) {
           for (const rawName of teamNames) {
             const name = rawName.trim().replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
             try {
-              const info = await sendCommand(`team list "${name}"`);
+              const info = await sendCommand(`team list ${name}`);
               const players: string[] = [];
               const memberMatch = info.match(/(\d+) members? in team/i) || info.match(/members?:\s*(.*)/i);
               if (memberMatch) {
@@ -299,37 +299,37 @@ export async function POST(request: Request) {
       }
       case "team_add": {
         const { name } = body;
-        const result = await sendCommand(`team add "${name}"`);
+        const result = await sendCommand(`team add ${name}`);
         return NextResponse.json({ success: true, response: result || `Created team ${name}` });
       }
       case "team_remove": {
         const { name } = body;
-        const result = await sendCommand(`team remove "${name}"`);
+        const result = await sendCommand(`team remove ${name}`);
         return NextResponse.json({ success: true, response: result || `Removed team ${name}` });
       }
       case "team_color": {
         const { name, color } = body;
-        const result = await sendCommand(`team modify "${name}" color ${color}`);
+        const result = await sendCommand(`team modify ${name} color ${color}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} color to ${color}` });
       }
       case "team_displayname": {
         const { name, displayName } = body;
-        const result = await sendCommand(`team modify "${name}" displayName {"text":"${displayName}"}`);
+        const result = await sendCommand(`team modify ${name} displayName {"text":"${displayName}"}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} display name to ${displayName}` });
       }
       case "team_prefix": {
         const { name, prefix } = body;
-        const result = await sendCommand(`team modify "${name}" prefix {"text":"${prefix}"}`);
+        const result = await sendCommand(`team modify ${name} prefix {"text":"${prefix}"}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} prefix to ${prefix}` });
       }
       case "team_suffix": {
         const { name, suffix } = body;
-        const result = await sendCommand(`team modify "${name}" suffix {"text":"${suffix}"}`);
+        const result = await sendCommand(`team modify ${name} suffix {"text":"${suffix}"}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} suffix to ${suffix}` });
       }
       case "team_join": {
         const { name, player } = body;
-        const result = await sendCommand(`team join "${name}" ${player}`);
+        const result = await sendCommand(`team join ${name} ${player}`);
         return NextResponse.json({ success: true, response: result || `Added ${player} to ${name}` });
       }
       case "team_leave": {
@@ -339,12 +339,12 @@ export async function POST(request: Request) {
       }
       case "team_empty": {
         const { name } = body;
-        const result = await sendCommand(`team empty "${name}"`);
+        const result = await sendCommand(`team empty ${name}`);
         return NextResponse.json({ success: true, response: result || `Emptied team ${name}` });
       }
       case "team_option": {
         const { name, option, value } = body;
-        const result = await sendCommand(`team modify "${name}" ${option} ${value}`);
+        const result = await sendCommand(`team modify ${name} ${option} ${value}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} ${option} to ${value}` });
       }
 
