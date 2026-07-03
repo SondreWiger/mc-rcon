@@ -275,6 +275,7 @@ export async function POST(request: Request) {
           for (const rawName of teamNames) {
             const name = rawName.trim();
             const displayName = strip(rawName);
+            const charCodes = [...name].map((c: string) => c.charCodeAt(0));
             try {
               const info = await sendCommand(`team list ${name}`);
               const players: string[] = [];
@@ -293,7 +294,7 @@ export async function POST(request: Request) {
               teams.push({ name, displayName, color: "white", players: [] });
             }
           }
-          return NextResponse.json({ success: true, teams, raw: result });
+          return NextResponse.json({ success: true, teams, raw: result, debug: teamNames.map((n: string) => ({ raw: n, trimmed: n.trim(), charCodes: [...n.trim()].map((c: string) => c.charCodeAt(0)) })) });
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
           return NextResponse.json({ success: false, error: `team list failed: ${msg}` });
@@ -302,17 +303,18 @@ export async function POST(request: Request) {
       case "team_add": {
         const { name } = body;
         const result = await sendCommand(`team add ${name}`);
-        return NextResponse.json({ success: true, response: result || `Created team ${name}` });
+        return NextResponse.json({ success: true, response: result || `Created team ${name}`, raw: result });
       }
       case "team_remove": {
         const { name } = body;
         const result = await sendCommand(`team remove ${name}`);
-        return NextResponse.json({ success: true, response: result || `Removed team ${name}` });
+        return NextResponse.json({ success: true, response: result || `Removed team ${name}`, raw: result });
       }
       case "team_color": {
         const { name, color } = body;
-        const result = await sendCommand(`team modify ${name} color ${color}`);
-        return NextResponse.json({ success: true, response: result || `Set ${name} color to ${color}` });
+        const debugCmd = `team modify ${name} color ${color}`;
+        const result = await sendCommand(debugCmd);
+        return NextResponse.json({ success: true, response: result || `Set ${name} color to ${color}`, raw: `${debugCmd} => ${result}`, debugCmd });
       }
       case "team_displayname": {
         const { name, displayName } = body;

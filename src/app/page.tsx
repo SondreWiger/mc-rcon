@@ -266,7 +266,11 @@ export default function Home() {
     const d = await api(action, params);
     setLoading(false);
     if (d.success) {
-      setResult(d.response || "Done");
+      const parts = [d.response || "Done"];
+      if (d.debugCmd) parts.push(`CMD: ${d.debugCmd}`);
+      if (d.debug) parts.push(`DEBUG: ${JSON.stringify(d.debug)}`);
+      if (d.raw && d.raw !== d.response) parts.push(`RAW: ${d.raw}`);
+      setResult(parts.join("\n"));
       if (d.response && action === "list") {
         const m = d.response.match(/online players \((\d+)\):\s*(.*)/i) || d.response.match(/There are \d+ .*? online:\s*(.*)/i);
         if (m) setOnlinePlayers(m[2]?.split(", ").filter(Boolean) || m[1]?.split(", ").filter(Boolean) || []);
