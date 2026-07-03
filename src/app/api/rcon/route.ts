@@ -254,38 +254,39 @@ export async function POST(request: Request) {
       case "team_list": {
         try {
           const result = await sendCommand("team list");
-          // Try multiple formats: "Known teams (2): a, b" or "There are 2 team(s): [a, b]"
           let teamNames: string[] = [];
           const matchKnown = result.match(/Known teams \((\d+)\):\s*(.*)/i);
           const matchThere = result.match(/There are \d+ team\(s\):\s*\[(.*?)\]/i);
           if (matchKnown && matchKnown[2].trim()) {
-            teamNames = matchKnown[2].split(", ").filter(Boolean);
+            teamNames = matchKnown[2].split(",").map((n: string) => n.trim()).filter(Boolean);
           } else if (matchThere && matchThere[1].trim()) {
-            teamNames = matchThere[1].split(", ").filter(Boolean);
+            teamNames = matchThere[1].split(",").map((n: string) => n.trim()).filter(Boolean);
           } else {
-            // Last resort: try comma-separated names after colon
             const matchColon = result.match(/:\s*(.+)/);
             if (matchColon && matchColon[1].trim()) {
-              teamNames = matchColon[1].replace(/[\[\]]/g, "").split(", ").filter(Boolean);
+              teamNames = matchColon[1].replace(/[\[\]]/g, "").split(",").map((n: string) => n.trim()).filter(Boolean);
             }
           }
           if (teamNames.length === 0) {
             return NextResponse.json({ success: true, teams: [], raw: result });
           }
           const teams: { name: string; color: string; players: string[] }[] = [];
-          for (const name of teamNames) {
+          for (const rawName of teamNames) {
+            const name = rawName.trim().replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
             try {
-              const info = await sendCommand(`team list ${name}`);
+              const info = await sendCommand(`team list "${name}"`);
               const players: string[] = [];
-              // Try: "There are 2 members in team X: p1, p2"
               const memberMatch = info.match(/(\d+) members? in team/i) || info.match(/members?:\s*(.*)/i);
               if (memberMatch) {
                 const afterColon = info.split(":")[1];
                 if (afterColon && afterColon.trim()) {
-                  players.push(...afterColon.split(", ").filter(Boolean));
+                  players.push(...afterColon.split(",").map((p: string) => p.trim()).filter(Boolean));
                 }
               }
-              teams.push({ name, color: "white", players });
+              let color = "white";
+              const colorMatch = info.match(/color:\s*(\w+)/i);
+              if (colorMatch) color = colorMatch[1].toLowerCase();
+              teams.push({ name, color, players });
             } catch {
               teams.push({ name, color: "white", players: [] });
             }
@@ -298,37 +299,37 @@ export async function POST(request: Request) {
       }
       case "team_add": {
         const { name } = body;
-        const result = await sendCommand(`team add ${name}`);
+        const result = await sendCommand(`team add "${name}"`);
         return NextResponse.json({ success: true, response: result || `Created team ${name}` });
       }
       case "team_remove": {
         const { name } = body;
-        const result = await sendCommand(`team remove ${name}`);
+        const result = await sendCommand(`team remove "${name}"`);
         return NextResponse.json({ success: true, response: result || `Removed team ${name}` });
       }
       case "team_color": {
         const { name, color } = body;
-        const result = await sendCommand(`team modify ${name} color ${color}`);
+        const result = await sendCommand(`team modify "${name}" color ${color}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} color to ${color}` });
       }
       case "team_displayname": {
         const { name, displayName } = body;
-        const result = await sendCommand(`team modify ${name} displayName {"text":"${displayName}"}`);
+        const result = await sendCommand(`team modify "${name}" displayName {"text":"${displayName}"}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} display name to ${displayName}` });
       }
       case "team_prefix": {
         const { name, prefix } = body;
-        const result = await sendCommand(`team modify ${name} prefix {"text":"${prefix}"}`);
+        const result = await sendCommand(`team modify "${name}" prefix {"text":"${prefix}"}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} prefix to ${prefix}` });
       }
       case "team_suffix": {
         const { name, suffix } = body;
-        const result = await sendCommand(`team modify ${name} suffix {"text":"${suffix}"}`);
+        const result = await sendCommand(`team modify "${name}" suffix {"text":"${suffix}"}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} suffix to ${suffix}` });
       }
       case "team_join": {
         const { name, player } = body;
-        const result = await sendCommand(`team join ${name} ${player}`);
+        const result = await sendCommand(`team join "${name}" ${player}`);
         return NextResponse.json({ success: true, response: result || `Added ${player} to ${name}` });
       }
       case "team_leave": {
@@ -338,12 +339,12 @@ export async function POST(request: Request) {
       }
       case "team_empty": {
         const { name } = body;
-        const result = await sendCommand(`team empty ${name}`);
+        const result = await sendCommand(`team empty "${name}"`);
         return NextResponse.json({ success: true, response: result || `Emptied team ${name}` });
       }
       case "team_option": {
         const { name, option, value } = body;
-        const result = await sendCommand(`team modify ${name} ${option} ${value}`);
+        const result = await sendCommand(`team modify "${name}" ${option} ${value}`);
         return NextResponse.json({ success: true, response: result || `Set ${name} ${option} to ${value}` });
       }
 

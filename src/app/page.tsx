@@ -229,6 +229,8 @@ export default function Home() {
   const [schedCommand, setSchedCommand] = useState("");
   const [schedDelay, setSchedDelay] = useState("10s");
   const [schedType, setSchedType] = useState("append");
+  const [schedMode, setSchedMode] = useState<"delay" | "at">("delay");
+  const [schedTime, setSchedTime] = useState("");
 
   // Console
   const [rawCommand, setRawCommand] = useState("");
@@ -976,17 +978,46 @@ export default function Home() {
 
               {/* Schedule */}
               <Section title="Scheduled Commands" number="H">
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr auto", gap: "1rem", marginBottom: "1rem" }}>
-                  <Field label="Command"><input type="text" value={schedCommand} onChange={(e) => setSchedCommand(e.target.value)} style={inputStyle} placeholder="say Hello world" /></Field>
-                  <Field label="Delay"><input type="text" value={schedDelay} onChange={(e) => setSchedDelay(e.target.value)} style={inputStyle} placeholder="10s or 1d" /></Field>
-                  <div><Field label="Mode"><select value={schedType} onChange={(e) => setSchedType(e.target.value)} style={{ ...inputStyle, width: "100px" }}><option value="append">Append</option><option value="replace">Replace</option></select></Field></div>
+                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+                  <button onClick={() => setSchedMode("delay")} style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem", fontFamily: "var(--font-mono), monospace", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", background: schedMode === "delay" ? "var(--navy)" : "transparent", color: schedMode === "delay" ? "white" : "var(--navy)", border: "1px solid var(--navy)", cursor: "pointer" }}>Relative Delay</button>
+                  <button onClick={() => setSchedMode("at")} style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem", fontFamily: "var(--font-mono), monospace", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", background: schedMode === "at" ? "var(--navy)" : "transparent", color: schedMode === "at" ? "white" : "var(--navy)", border: "1px solid var(--navy)", cursor: "pointer" }}>At Specific Time</button>
                 </div>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <Btn color="navy" onClick={() => run("schedule", { command: schedCommand, delay: schedDelay, type: schedType })} disabled={!schedCommand}>Schedule</Btn>
+                <Field label="Command"><input type="text" value={schedCommand} onChange={(e) => setSchedCommand(e.target.value)} style={inputStyle} placeholder="say Hello world" /></Field>
+                <div style={{ display: "grid", gridTemplateColumns: schedMode === "at" ? "2fr 1fr" : "2fr 1fr", gap: "1rem", marginTop: "1rem" }}>
+                  {schedMode === "delay" ? (
+                    <Field label="Delay"><input type="text" value={schedDelay} onChange={(e) => setSchedDelay(e.target.value)} style={inputStyle} placeholder="10s, 5m, 1h, 1d" /></Field>
+                  ) : (
+                    <Field label="Run At (your time)"><input type="datetime-local" value={schedTime} onChange={(e) => setSchedTime(e.target.value)} style={inputStyle} /></Field>
+                  )}
+                  <div><Field label="Mode"><select value={schedType} onChange={(e) => setSchedType(e.target.value)} style={{ ...inputStyle, width: "100%" }}><option value="append">Append</option><option value="replace">Replace</option></select></Field></div>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                  <Btn color="navy" onClick={() => {
+                    if (schedMode === "at" && schedTime) {
+                      const target = new Date(schedTime).getTime();
+                      const diff = Math.max(0, Math.floor((target - Date.now()) / 1000));
+                      if (diff <= 0) { setResult("Error: Time is in the past"); return; }
+                      let delayStr = "";
+                      const days = Math.floor(diff / 86400);
+                      const hours = Math.floor((diff % 86400) / 3600);
+                      const mins = Math.floor((diff % 3600) / 60);
+                      const secs = diff % 60;
+                      if (days > 0) delayStr += `${days}d `;
+                      if (hours > 0) delayStr += `${hours}h `;
+                      if (mins > 0) delayStr += `${mins}m `;
+                      if (secs > 0) delayStr += `${secs}s`;
+                      delayStr = delayStr.trim() || "1s";
+                      run("schedule", { command: schedCommand, delay: delayStr, type: schedType });
+                    } else {
+                      run("schedule", { command: schedCommand, delay: schedDelay, type: schedType });
+                    }
+                  }} disabled={!schedCommand || (schedMode === "at" && !schedTime)}>Schedule</Btn>
                   <Btn color="outline" onClick={() => run("schedule_list")}>List Scheduled</Btn>
                   <Btn color="red" onClick={() => run("schedule_clear", { command: schedCommand })}>Clear All</Btn>
                 </div>
-                <span style={{ fontSize: "0.75rem", color: "var(--grey)", fontFamily: "var(--font-mono), monospace", marginTop: "0.75rem", display: "block" }}>Delay formats: 1s, 5m, 1h, 1d</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--grey)", fontFamily: "var(--font-mono), monospace", marginTop: "0.75rem", display: "block" }}>
+                  {schedMode === "delay" ? "Delay: 1s, 5m, 1h, 1d" : "Pick a time and the delay is calculated automatically from now"}
+                </span>
               </Section>
 
               {result && <ResultBox value={result} />}
